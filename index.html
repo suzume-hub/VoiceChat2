@@ -169,8 +169,11 @@ function enqueue(s) {
 }
 function flush(end, st) {
   let m;
-  while ((m = st.buf.match(/^[\s\S]*?[。！？!?\n]+/))) {
-    enqueue(m[0]); st.buf = st.buf.slice(m[0].length);
+  for (;;) {
+    // 最初の1かたまりだけは読点(、)でも区切って、声が出るまでの時間を縮める
+    m = st.sent ? st.buf.match(/^[\s\S]*?[。！？!?\n]+/) : st.buf.match(/^[\s\S]{6,}?[。！？!?\n、]+/);
+    if (!m) break;
+    enqueue(m[0]); st.buf = st.buf.slice(m[0].length); st.sent = true;
   }
   if (end && st.buf.trim()) { enqueue(st.buf); st.buf = ''; }
 }
@@ -223,6 +226,7 @@ async function loadSpeakers() {
     if (!$('vvspk').value) $('vvspk').selectedIndex = 0;
     $('vvmsg').textContent = '接続できました';
     updateCredit();
+    synthVV('あ').catch(() => {});  // 最初の合成が遅くならないよう、先に一度動かしておく
   } catch (e) {
     $('vvmsg').textContent = 'つながりません。起動と許可の設定を確認してください';
   }
